@@ -113,52 +113,64 @@ const updateUserProfile = asyncHandler(async (req, res) => {
 })
 
 const updatePassageInfo = asyncHandler(async (req, res) => {
-  // const passage = await Passage.find({passage: req.body.passage})
   if (!req.body.passage) {
-    res.status(400).send({
+    return res.status(400).send({
       Status: 'failed',
       message: 'no passage sent!',
-    })
+    });
   }
   if (!req.body.fields) {
-    res.status(400).send({
+    return res.status(400).send({
       Status: 'failed',
       message: 'no fields sent!',
-    })
+    });
   }
-  const doc = await Passage.findOneAndUpdate(
-    { passage: req.body.passage },
-    {
-      $push: { fields: req.body.fields },
-    }
-  )
+  
+  const fieldsArray = req.body.fields;
 
-  await doc.save()
+  try {
+    const updatePromises = fieldsArray.map(async (field) => {
+      const doc = await Passage.findOneAndUpdate(
+        { 'paragraphs.context': req.body.passage },
+        {
+          $push: {
+            'paragraphs.qas': field,
+          },
+        },
+        { new: true }
+      );
 
-  if (doc) {
-    const user = await User.findById(req.body.user)
-    var x = user.completedPassages
-    console.log(x)
+      await doc.save();
+      return doc;
+    });
+
+    const updatedDocs = await Promise.all(updatePromises);
+
+    const user = await User.findById(req.body.user);
     const userUpdated = await User.updateOne(
       { _id: req.body.user },
-      { completedPassages: x + 1 }
-    )
-    // await userUpdated.save();
-    if (user) {
+      { completedPassages: user.completedPassages + updatedDocs.length }
+    );
+
+    if (userUpdated && updatedDocs.length > 0) {
       res.json({
-        doc: doc,
-      })
+        docs: updatedDocs,
+      });
     } else {
       res.status(500).send({
         Status: 'failed',
         message: 'user count could not be updated',
-      })
+      });
     }
-  } else {
-    res.status(404)
-    throw new Error('Passage not found')
+  } catch (error) {
+    console.error(error);
+    res.status(500).send({
+      Status: 'failed',
+      message: 'An error occurred',
+    });
   }
-})
+});
+
 const getPassage = asyncHandler(async (req, res) => {
   Passage.count().exec(async function (err, count) {
     var random = Math.floor(Math.random() * count)
@@ -171,7 +183,18 @@ const getPassage = asyncHandler(async (req, res) => {
             Status: 'Failed',
             message: 'Unable to get random passage from database.',
           })
-        } else res.send(result)
+        } else{
+          // console.log(result)
+          res.send({
+            title: { title_text: '', url: '' },
+            paragraphs: {
+              context: 'جناح ایک ہندوستانی سیاستدان تھے جنہوں نے ایک آزاد پاکستان کے لیے کامیابی سے مہم چلائی اور اس کے پہلے رہنما بنے۔ وہ قائد اعظم یا عظیم لیڈر کے نام سے جانے جاتے ہیں۔ محمد علی جناح 25 دسمبر 1876 کو کراچی میں پیدا ہوئے۔ ان کے والد ایک خوشحال مسلمان تاجر تھے۔ جناح نے بمبئی یونیورسٹی اور لندن میں لنکن ان میں تعلیم حاصل کی۔ اس نے بمبئی میں ایک کامیاب قانونی پریکٹس کی۔ وہ پہلے ہی انڈین نیشنل کانگریس کے رکن تھے، جو برطانوی راج سے خودمختاری کے لیے کام کر رہے تھے، جب اس نے 1913 میں مسلم لیگ میں شمولیت اختیار کی۔ جناح نے 1920 میں کانگریس چھوڑ دی کیونکہ سیاسی اختلاف تھا۔ لیگ نے چند  سال قبل ایک بنیادی طور پر ہندو ملک میں ہندوستانی مسلمانوں کے مفادات کی نمائندگی کے لیے تشکیل دی تھی،اور جناح پہلی بار 1916 میںاس کے صدر منتخب ہوئے۔ وہ 1937 میں دوبارہ لیگ کے صدر منتخب ہوئے اور6سال صدر رہے۔',
+              passage_type: '',
+              comprehension_level: '',
+              isAnnotated: false
+            },
+          })
+        } 
       })
   })
 })

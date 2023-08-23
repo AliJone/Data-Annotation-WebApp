@@ -14,9 +14,10 @@ const FormPage = () => {
       passage_type: '',
       comprehension_level: '',
       question_type: '',
-      answer_type: '',
+      answer_entity: '',
       question_group: '',
-      // passage: passage,
+      passage: passage,
+      annotator_name: '',
     },
   ])
 
@@ -35,22 +36,26 @@ const FormPage = () => {
 
     axios(config)
       .then(async function (response) {
-        await setPassage(response.data.passage)
-        await setPassageType(response.data.passage_type[0])
+        await setPassage(response.data.paragraphs.context)
+        await setPassageType(response.data.paragraphs.passage_type)
         setFields([
           {
             id: 0,
             question: '',
             answer: '',
-            passage_type: passageType,
+            passage_type: response.data.paragraphs.passage_type,
             comprehension_level: '',
             question_type: '',
-            answer_type: '',
+            answer_entity: '',
             question_group: '',
-            // passage: passage,
+            passage: response.data.paragraphs.context,
+            annotator_name: '',
           },
         ])
         // console.log(response.data.passage_type[0]);
+        console.log(response.data);
+        console.log(response.data.paragraphs.passage_type);
+        console.log(response.data.paragraphs.context);
       })
       .catch(function (error) {
         console.log(error)
@@ -67,8 +72,9 @@ const FormPage = () => {
         passage_type: '',
         comprehension_level: '',
         question_type: '',
-        answer_type: '',
+        answer_entity: '',
         question_group: '',
+        annotator_name: '',
       },
     ])
   }
@@ -146,9 +152,7 @@ const FormPage = () => {
                   onChange={(e) => handleChangeInput(i, e)}
                 />
               </Form.Group>
-
-              <Row className='mb-3'>
-                <Form.Group as={Col} controlId='formGridCity'>
+              <Form.Group className='mb-3' controlId='formGridAddress1'>
                   <Form.Label>Answer</Form.Label>
                   <Form.Control
                     name='answer'
@@ -156,6 +160,16 @@ const FormPage = () => {
                     onChange={(e) => handleChangeInput(i, e)}
                   />
                 </Form.Group>
+              <Row className='mb-3'>
+                <Form.Group as={Col} controlId='formGridCity'>
+                  <Form.Label>Name</Form.Label>
+                  <Form.Control
+                    name='annotator_name'
+                    value={field.annotator_name}
+                    onChange={(e) => handleChangeInput(i, e)}
+                  />
+                </Form.Group>
+                
 
                 <Form.Group as={Col} controlId='formGridState'>
                   <Form.Label>Passage Type</Form.Label>
@@ -211,8 +225,8 @@ const FormPage = () => {
                   <Form.Label>Answer Type</Form.Label>
                   <Form.Select
                     defaultValue=''
-                    name='answer_type'
-                    // value={field.answer_type}
+                    name='answer_entity'
+                    value={field.answer_entity}
                     onChange={(e) => handleChangeInput(i, e)}
                   >
                     <option value=''> Choose..</option>
@@ -231,7 +245,7 @@ const FormPage = () => {
                   <Form.Select
                     defaultValue=''
                     name='question_group'
-                    // value={field.question_group}
+                    value={field.question_group}
                     onChange={(e) => handleChangeInput(i, e)}
                     disabled
                   >
